@@ -1,1 +1,6 @@
 /target
+/trl_json_parser/target/
+**/*.cargo-lock
+**/*.cargo-build-lock
+**/*.cargo-artifact-lock
+
