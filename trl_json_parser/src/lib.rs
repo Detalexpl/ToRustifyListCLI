@@ -164,3 +164,74 @@ impl<'a> Parser<'a> {
             .map_err(|_| "couldn't get number".to_string())
     }
 }
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn skip_withspaces_test() {
+        let input = "   test";
+        let mut anser = String::new();
+        let mut mook_parser = Parser::new(input);
+        mook_parser.skip_witespaces();
+        while let Some(c) = mook_parser.chars.next() {
+            anser.push(c);
+        }
+        assert_eq!(anser, "test".to_string())
+    }
+    #[test]
+    fn parse_string_test() {
+        let input = r#"" AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpRrSsTtWwUuZzXxYy 1234567890 ! # @ . /""#;
+        let mut mook_parser = Parser::new(input);
+        let anser = mook_parser.parse_string();
+        assert_eq!(
+            anser,
+            Ok(JsonValue::String(String::from(
+                " AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpRrSsTtWwUuZzXxYy 1234567890 ! # @ . /"
+            )))
+        );
+
+        let input2 = r#"" Test2"#;
+        let mut mook_parser2 = Parser::new(input2);
+        let anser2 = mook_parser2.parse_string();
+        assert_eq!(anser2, Err(r#"no closing quotation '"' mark"#.to_string()))
+    }
+
+    #[test]
+    fn parse_literal_bool_test() {
+        let input = "true";
+        let mut mook_parser = Parser::new(input);
+        let anser = mook_parser.parse_literal_bool();
+        assert_eq!(anser, Ok(JsonValue::Boolean(true)));
+
+        let input2 = "false";
+        let mut mook_parser2 = Parser::new(input2);
+        let anser2 = mook_parser2.parse_literal_bool();
+        assert_eq!(anser2, Ok(JsonValue::Boolean(false)));
+
+        let input3 = "test";
+        let mut mook_parser3 = Parser::new(input3);
+        let anser3 = mook_parser3.parse_literal_bool();
+        assert_eq!(anser3, Err("unknown logic literal: test".to_string()))
+    }
+
+    #[test]
+    fn parse_literal_null_test() {
+        let input = "null";
+        let mut mook_parser = Parser::new(input);
+        let anser = mook_parser.parse_literal_null();
+        assert_eq!(anser, Ok(JsonValue::Null));
+
+        let input2 = "test";
+        let mut mook_parser2 = Parser::new(input2);
+        let anser = mook_parser2.parse_literal_null();
+        assert_eq!(anser, Err("Expected null get: test".to_string()))
+    }
+
+    #[test]
+    fn parse_arrey_test() {
+        let input = r#"["test1", "test2", "test3"]"#;
+        let mut mook_parser = Parser::new(input);
+        let anser = mook_parser.parse_arrey();
+    }
+}
