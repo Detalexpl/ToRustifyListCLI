@@ -91,7 +91,6 @@ impl<'a> Parser<'a> {
 
         while let Some(c) = self.chars.next() {
             if c == '"' {
-                self.chars.next();
                 return Ok(JsonValue::String(s));
             }
             s.push(c);
@@ -114,7 +113,7 @@ impl<'a> Parser<'a> {
             match self.chars.next() {
                 Some(']') => break,
                 Some(',') => continue,
-                _ => return Err(r#"Expected ',' or ']' in array"#.to_string()),
+                _ => return Err("Expected ',' or ']' in array".to_string()),
             }
         }
         return Ok(JsonValue::Array(arr));
@@ -152,7 +151,7 @@ impl<'a> Parser<'a> {
     fn parse_number(&mut self) -> Result<JsonValue, String> {
         let mut num_str = String::new();
         while let Some(&c) = self.chars.peek() {
-            if c == '-' || c == '.' || c == 'e' || c == 'E' || c.is_ascii_digit() {
+            if c == '-' || c == '.' || c == 'e' || c == 'E' || c == '+' || c.is_ascii_digit() {
                 num_str.push(self.chars.next().unwrap());
             } else {
                 break;
@@ -230,8 +229,104 @@ mod test {
 
     #[test]
     fn parse_arrey_test() {
-        let input = r#"["test1", "test2", "test3"]"#;
+        let input = r#"["test1","test2","test3" ]"#;
         let mut mook_parser = Parser::new(input);
         let anser = mook_parser.parse_arrey();
+        let correct_vec = vec![
+            JsonValue::String("test1".to_string()),
+            JsonValue::String("test2".to_string()),
+            JsonValue::String("test3".to_string()),
+        ];
+        let correct: Result<JsonValue, String> = Ok(JsonValue::Array(correct_vec));
+        assert_eq!(anser, correct);
+
+        let input2 = r#"[false,true,false]"#;
+        let mut mook_parser2 = Parser::new(input2);
+        let anser2 = mook_parser2.parse_arrey();
+        let correct_vec2 = vec![
+            JsonValue::Boolean(false),
+            JsonValue::Boolean(true),
+            JsonValue::Boolean(false),
+        ];
+        let correct2 = Ok(JsonValue::Array(correct_vec2));
+        assert_eq!(anser2, correct2);
+
+        let input2 = r#"[1,true,"test4"]"#;
+        let mut mook_parser2 = Parser::new(input2);
+        let anser2 = mook_parser2.parse_arrey();
+        let correct_vec2 = vec![
+            JsonValue::Number(1.0),
+            JsonValue::Boolean(true),
+            JsonValue::String("test4".to_string()),
+        ];
+        let correct2 = Ok(JsonValue::Array(correct_vec2));
+        assert_eq!(anser2, correct2);
+
+        let input3 = r#"[1,true,"test4""#;
+        let mut mook_parser3 = Parser::new(input3);
+        let anser3 = mook_parser3.parse_arrey();
+        let correct3 = Err("Expected ',' or ']' in array".to_string());
+        assert_eq!(anser3, correct3);
+
+        let input4 = "[1,2 3]";
+        let mut mook_parser4 = Parser::new(input4);
+        let anser4 = mook_parser4.parse_arrey();
+        let correct4: Result<JsonValue, String> = Err("Expected ',' or ']' in array".to_string());
+        assert_eq!(anser4, correct4)
+    }
+    #[test]
+    fn parse_number_test() {
+        let input = "123";
+        let mut mook_parser = Parser::new(input);
+        let anser = mook_parser.parse_number();
+        let correct: Result<JsonValue, String> = Ok(JsonValue::Number(123.0));
+        assert_eq!(anser, correct);
+
+        let input2 = "-123";
+        let mut mook_parser2 = Parser::new(input2);
+        let anser2 = mook_parser2.parse_number();
+        let correct2: Result<JsonValue, String> = Ok(JsonValue::Number(-123.0));
+        assert_eq!(anser2, correct2);
+
+        let input3 = "1.0e+5";
+        let mut mook_parser3 = Parser::new(input3);
+        let anser3 = mook_parser3.parse_number();
+        let correct3: Result<JsonValue, String> = Ok(JsonValue::Number(100000.0));
+        assert_eq!(anser3, correct3);
+
+        let input4 = "1.0ee5";
+        let mut mook_parser4 = Parser::new(input4);
+        let anser4 = mook_parser4.parse_number();
+        let correct4: Result<JsonValue, String> = Err("couldn't get number".to_string());
+        assert_eq!(anser4, correct4);
+    }
+    #[test]
+    fn parse_object_test() {
+        let input = r#"{
+            "teststring" : "test",
+            "testnumber" : 123,
+            "testnull" : null,
+            "testarrey" : [1, 2, 3],
+            "testbool" : false,
+
+        }"#;
+        let mut mook_parser = Parser::new(input);
+        let anser4 = mook_parser.parse_object();
+        let mut correct_map: HashMap<String, JsonValue> = HashMap::new();
+        correct_map.insert(
+            "teststring".to_owned(),
+            JsonValue::String("test".to_owned()),
+        );
+        correct_map.insert("testnumber".to_owned(), JsonValue::Number(123.0));
+        correct_map.insert("testnull".to_owned(), JsonValue::Null);
+        let correct_vec = vec![
+            JsonValue::Number(1.0),
+            JsonValue::Number(2.0),
+            JsonValue::Number(3.0),
+        ];
+        correct_map.insert("testarrey".to_owned(), JsonValue::Array(correct_vec));
+        correct_map.insert("testbool".to_owned(), JsonValue::Boolean(false));
+
+        let correct: Result<JsonValue, String> = Ok(JsonValue::Object(correct_map));
     }
 }
