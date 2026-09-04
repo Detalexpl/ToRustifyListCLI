@@ -307,11 +307,10 @@ mod test {
             "testnumber" : 123,
             "testnull" : null,
             "testarrey" : [1, 2, 3],
-            "testbool" : false,
-
+            "testbool" : false
         }"#;
         let mut mook_parser = Parser::new(input);
-        let anser4 = mook_parser.parse_object();
+        let anser = mook_parser.parse_object();
         let mut correct_map: HashMap<String, JsonValue> = HashMap::new();
         correct_map.insert(
             "teststring".to_owned(),
@@ -328,5 +327,32 @@ mod test {
         correct_map.insert("testbool".to_owned(), JsonValue::Boolean(false));
 
         let correct: Result<JsonValue, String> = Ok(JsonValue::Object(correct_map));
+        assert_eq!(anser, correct);
+
+        let input = r#"{
+            "teststring"  "test",
+            "testnumber" : 123,
+            "testnull" : null,
+            "testarrey" : [1, 2, 3],
+            "testbool" : false
+        }"#;
+        let mut mook_parser = Parser::new(input);
+        let anser = mook_parser.parse_object();
+
+        let correct: Result<JsonValue, String> = Err(r#"Expected ':' after key"#.to_owned());
+        assert_eq!(anser, correct);
+
+        let input = r#"{
+            teststring" : "test",
+            testnumber" : 123,
+            "testnull" : null,
+            "testarrey" : [1, 2, 3],
+            "testbool" : false
+        }"#;
+        let mut mook_parser = Parser::new(input);
+        let anser = mook_parser.parse_object();
+        let mut correct_map: HashMap<String, JsonValue> = HashMap::new();
+        let correct: Result<JsonValue, String> = Err("key must be string".to_string());
+        assert_eq!(anser, correct)
     }
 }
