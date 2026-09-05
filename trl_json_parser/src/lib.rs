@@ -49,7 +49,7 @@ impl<'a> Parser<'a> {
             Some('t') | Some('f') => self.parse_literal_bool(),
             Some('n') => self.parse_literal_null(),
             Some(&c) if c == '-' || c.is_ascii_digit() => self.parse_number(),
-            _ => return Err("couldnt parse JSON".to_string()),
+            _ => return Err("couldn't parse JSON".to_string()),
         }
     }
     fn parse_object(&mut self) -> Result<JsonValue, String> {
@@ -343,16 +343,119 @@ mod test {
         assert_eq!(anser, correct);
 
         let input = r#"{
-            teststring" : "test",
-            testnumber" : 123,
+            "teststring" : "test",
+            "testnumber"  123,
             "testnull" : null,
             "testarrey" : [1, 2, 3],
             "testbool" : false
         }"#;
         let mut mook_parser = Parser::new(input);
         let anser = mook_parser.parse_object();
+        let correct: Result<JsonValue, String> = Err(r#"Expected ':' after key"#.to_string());
+        assert_eq!(anser, correct);
+
+        let input = r#"{
+            "teststring" : "test",
+            "testnumber" : 123,
+            "testnull" : null
+            "testarrey" : [1, 2, 3],
+            "testbool" : false
+        }"#;
+        let mut mook_parser = Parser::new(input);
+        let anser = mook_parser.parse_object();
+        let correct: Result<JsonValue, String> =
+            Err(r#"Expected ',' or '}' in object"#.to_string());
+        assert_eq!(anser, correct);
+
+        let input = r#"{
+            "teststring" : "test",
+            "testnumber" : 123,
+            "testnull" : null,
+            "testarrey" : [1, 2, 3],
+            "testbool" : false
+        "#;
+        let mut mook_parser = Parser::new(input);
+        let anser = mook_parser.parse_object();
+        let correct: Result<JsonValue, String> =
+            Err(r#"Expected ',' or '}' in object"#.to_string());
+        assert_eq!(anser, correct);
+
+        let input = r#"{}"#;
+        let mut mook_parser = Parser::new(input);
+        let anser = mook_parser.parse_object();
+        let correct_map: HashMap<String, JsonValue> = HashMap::new();
+        let correct: Result<JsonValue, String> = Ok(JsonValue::Object(correct_map));
+        assert_eq!(anser, correct);
+    }
+    #[test]
+    fn parse_value_test() {
+        let input = r#"{
+            "teststring" : "test",
+            "testnumber" : 123,
+            "testnull" : null,
+            "testarrey" : [1, 2, 3],
+            "testbool" : false,
+            "testobject" : {
+                "teststring2" : "test2"
+            }
+        }"#;
+        let mut mook_parser = Parser::new(input);
         let mut correct_map: HashMap<String, JsonValue> = HashMap::new();
-        let correct: Result<JsonValue, String> = Err("key must be string".to_string());
+        correct_map.insert(
+            "teststring".to_owned(),
+            JsonValue::String("test".to_owned()),
+        );
+        correct_map.insert("testnumber".to_owned(), JsonValue::Number(123.0));
+        correct_map.insert("testnull".to_owned(), JsonValue::Null);
+        let correct_vec = vec![
+            JsonValue::Number(1.0),
+            JsonValue::Number(2.0),
+            JsonValue::Number(3.0),
+        ];
+        correct_map.insert("testarrey".to_owned(), JsonValue::Array(correct_vec));
+        correct_map.insert("testbool".to_owned(), JsonValue::Boolean(false));
+        let mut correct_map2: HashMap<String, JsonValue> = HashMap::new();
+        correct_map2.insert(
+            "teststring2".to_owned(),
+            JsonValue::String("test2".to_owned()),
+        );
+        correct_map.insert("testobject".to_owned(), JsonValue::Object(correct_map2));
+        let correct: Result<JsonValue, String> = Ok(JsonValue::Object(correct_map));
+        let anser = mook_parser.parse_value();
+        assert_eq!(anser, correct);
+
+        let input = r#"{
+            "teststring" : "test",
+            "testnumber" : 123,
+            "testnull" : null,
+            "testarrey" : [1, 2, 3],
+            "testbool" : efalse,
+            "testobject" : {
+                "teststring2" : "test2"
+            }
+        }"#;
+        let mut mook_parser = Parser::new(input);
+        let anser = mook_parser.parse_value();
+        let correct: Result<JsonValue, String> = Err("couldn't parse JSON".to_owned());
+        assert_eq!(anser, correct)
+    }
+    #[test]
+    fn parse_test() {
+        let input = r#"{
+            "teststring" : "test",
+            "testnumber" : 123,
+            "testnull" : null,
+            "testarrey" : [1, 2, 3],
+            "testbool" : false,
+            "testobject" : {
+                "teststring2" : "test2"
+            }
+
+        }ddd"#;
+        let mut mook_parser = Parser::new(input);
+        let anser = mook_parser.parse();
+        let correct: Result<JsonValue, String> =
+            Err("aditional chars at end of JSON file".to_string());
         assert_eq!(anser, correct)
     }
 }
