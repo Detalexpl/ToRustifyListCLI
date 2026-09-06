@@ -1,17 +1,5 @@
-use std::collections::HashMap;
-use std::iter::Peekable;
-use std::str::Chars;
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum JsonValue {
-    Null,
-    Boolean(bool),
-    Number(f64),
-    String(String),
-    Array(Vec<JsonValue>),
-    Object(HashMap<String, JsonValue>),
-}
-
+use super::JsonValue;
+use std::{collections::HashMap, iter::Peekable, str::Chars};
 pub struct Parser<'a> {
     chars: Peekable<Chars<'a>>,
 }

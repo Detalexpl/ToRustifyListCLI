@@ -5,3 +5,10 @@ version = 4
 [[package]]
 name = "ToRustifyListCLI"
 version = "0.1.0"
+dependencies = [
+ "trl_json",
+]
+
+[[package]]
+name = "trl_json"
+version = "0.2.0"
