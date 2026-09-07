@@ -1,7 +1,6 @@
 use crate::JsonValue;
 use crate::JsonValue::*;
 use std::collections::HashMap;
-use std::iter::Peekable;
 use std::string::String;
 pub struct Serializer {
     json_value: JsonValue,
@@ -13,20 +12,71 @@ impl Serializer {
     pub fn serialize(&mut self) -> Result<String, String> {
         let mut output = String::new();
         match self.json_value {
-            Object(j) => output.push_str(&Self::serialize_object(j)?),
+            Number(n) => output.push_str(&Self::serialize_number(&n)),
+            String(ref s) => output.push_str(&Self::serialize_string(&s)),
+            Array(ref v) => output.push_str(&Self::serialize_array(&v)),
+            Object(ref o) => output.push_str(&Self::serialize_object(o.to_owned())),
+            Null => output.push_str(&Self::serialize_null()),
+            Boolean(b) => output.push_str(&Self::serialize_boolean(&b)),
         }
         Ok(output)
     }
-    fn serialize_object(self, object: HashMap<String, JsonValue>) -> Result<String, String> {
+    fn serialize_object(object: HashMap<String, JsonValue>) -> String {
         let mut output = String::new();
         output.push('{');
-        let map = object.iter().peekable();
-        while let String(o) = map.next();
-        Ok(output)
+        let mut map = object.iter().peekable();
+        while let Some(o) = &mut map.next() {
+            output.push_str(&format!("\"{0}\" : ", o.0));
+            match o.1 {
+                Number(n) => output.push_str(&Self::serialize_number(n)),
+                String(s) => output.push_str(&Self::serialize_string(s)),
+                Array(v) => output.push_str(&Self::serialize_array(v)),
+                Object(o) => output.push_str(&Self::serialize_object(o.to_owned())),
+                Null => output.push_str(&Self::serialize_null()),
+                Boolean(b) => output.push_str(&Self::serialize_boolean(b)),
+            };
+            if let Some(_) = map.peek() {
+                output.push(',')
+            }
+        }
+        output.push('}');
+        output
     }
-    fn serialize_number(number: f64) -> String {
+    fn serialize_number(number: &f64) -> String {
         let mut output = String::new();
         output.push_str(&number.to_string());
         output
+    }
+    fn serialize_string(string: &String) -> String {
+        format!("\"{}\"", string)
+    }
+    fn serialize_array(vec: &Vec<JsonValue>) -> String {
+        let mut output = String::from("[");
+        let mut array = vec.iter().peekable();
+        while let Some(j) = array.next() {
+            match j {
+                Number(n) => output.push_str(&Self::serialize_number(n)),
+                String(s) => output.push_str(&Self::serialize_string(s)),
+                Array(a) => output.push_str(&Self::serialize_array(a)),
+                Object(o) => output.push_str(&Self::serialize_object(o.to_owned())),
+                Null => output.push_str(&Self::serialize_null()),
+                Boolean(b) => output.push_str(&Self::serialize_boolean(b)),
+            }
+            if let Some(_) = array.peek() {
+                output.push(',');
+            }
+        }
+        output.push(']');
+        output
+    }
+    fn serialize_null() -> String {
+        format!("null")
+    }
+    fn serialize_boolean(bool: &bool) -> String {
+        if bool.to_owned() {
+            "true".to_owned()
+        } else {
+            "false".to_owned()
+        }
     }
 }
