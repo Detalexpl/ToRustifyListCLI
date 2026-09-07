@@ -80,3 +80,35 @@ impl Serializer {
         }
     }
 }
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::*;
+    #[test]
+    fn serialize_boolean_test() {
+        let json = JsonValue::Boolean(false);
+        let serializer = Serializer::new(json);
+        if let Boolean(b) = serializer.json_value {
+            let anser = Serializer::serialize_boolean(&b);
+            let correct = String::from("false");
+            assert_eq!(anser, correct)
+        } else {
+            panic!("this shudl be inposible");
+        }
+        let json = JsonValue::Boolean(true);
+        let serializer = Serializer::new(json);
+        if let Boolean(b) = serializer.json_value {
+            let anser = Serializer::serialize_boolean(&b);
+            let correct = String::from("true");
+            assert_eq!(anser, correct)
+        } else {
+            panic!("this shudl be inposible");
+        }
+    }
+
+    #[test]
+    fn serialize_null_test() {
+        let anser = Serializer::serialize_null();
+        assert_eq!(anser, "null".to_owned())
+    }
+}
