@@ -36,7 +36,7 @@ impl Serializer {
                 Boolean(b) => output.push_str(&Self::serialize_boolean(b)),
             };
             if let Some(_) = map.peek() {
-                output.push(',')
+                output.push_str(", ")
             }
         }
         output.push('}');
@@ -63,7 +63,7 @@ impl Serializer {
                 Boolean(b) => output.push_str(&Self::serialize_boolean(b)),
             }
             if let Some(_) = array.peek() {
-                output.push(',');
+                output.push_str(", ");
             }
         }
         output.push(']');
@@ -110,5 +110,36 @@ mod test {
     fn serialize_null_test() {
         let anser = Serializer::serialize_null();
         assert_eq!(anser, "null".to_owned())
+    }
+
+    #[test]
+    fn serialize_array_test() {
+        let json = JsonValue::Array(vec![
+            JsonValue::Null,
+            JsonValue::Boolean(false),
+            JsonValue::Number(1.0),
+            JsonValue::String("test".to_owned()),
+            JsonValue::Object(HashMap::new()),
+        ]);
+        let serializer = Serializer::new(json);
+        if let Array(v) = serializer.json_value {
+            let anser = Serializer::serialize_array(&v);
+            let correct = "[null, false, 1, \"test\", {}]".to_owned();
+            assert_eq!(anser, correct)
+        } else {
+            panic!("this is not posible")
+        }
+    }
+    #[test]
+    fn serializer_string_test() {
+        let json = JsonValue::String("test".to_owned());
+        let serializer = Serializer::new(json);
+        if let String(s) = serializer.json_value {
+            let anser = Serializer::serialize_string(&s);
+            let correct = "\"test\"".to_owned();
+            assert_eq!(anser, correct)
+        } else {
+            panic!("this is not posible")
+        }
     }
 }
