@@ -69,6 +69,26 @@ impl ToDoValue {
         }
         return Ok(vec);
     }
+
+    //function to cheange TODoValue to JsonValue
+    fn to_json(vec: Vec<ToDoValue>) -> JsonValue {
+        let mut mmap = HashMap::new();
+        for val in vec {
+            let jsub = Sub::to_json(val.sub);
+            let jid = JsonValue::Number(val.id as f64);
+            let jdone = JsonValue::Boolean(val.done);
+            let map = HashMap::from([
+                ("id".to_owned(), jid),
+                ("sub".to_owned(), jsub),
+                ("done".to_owned(), jdone),
+            ]);
+            mmap.insert(val.name, JsonValue::Object(map));
+        }
+        JsonValue::Object(mmap)
+    }
+    fn add(vec: &Vec<ToDoValue>, name: String) -> ToDoValue {
+        let id = Id::next_id(vec);
+    }
 }
 
 impl Id for ToDoValue {
@@ -121,6 +141,19 @@ impl Sub {
             vec.push(Sub { name, done, id });
         }
         Ok(vec)
+    }
+    fn to_json(val: Option<Vec<Sub>>) -> JsonValue {
+        let Some(s) = val else { return JsonValue::Null };
+        let mut map = HashMap::new();
+        for sub in s {
+            let jid = JsonValue::Number(sub.id as f64);
+            let jname = JsonValue::String(sub.name);
+            let jdone = JsonValue::Boolean(sub.done);
+            map.insert("name".to_owned(), jname);
+            map.insert("id".to_owned(), jid);
+            map.insert("jdone".to_owned(), jdone);
+        }
+        JsonValue::Object(map)
     }
 }
 #[derive(Debug)]
