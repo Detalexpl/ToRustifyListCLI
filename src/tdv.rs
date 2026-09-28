@@ -87,7 +87,15 @@ impl ToDoValue {
         JsonValue::Object(mmap)
     }
     fn add(vec: &Vec<ToDoValue>, name: String) -> ToDoValue {
-        let id = Id::next_id(vec);
+        let id = <ToDoValue as Id>::next_id(vec);
+        let done = false;
+        let sub = None;
+        ToDoValue {
+            name,
+            id,
+            sub,
+            done,
+        }
     }
 }
 
