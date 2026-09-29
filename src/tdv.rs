@@ -90,15 +90,22 @@ impl ToDoValue {
         let id = <ToDoValue as Id>::next_id(vec);
         let done = false;
         let sub = None;
-        ToDoValue { name, id }
+        ToDoValue {
+            name,
+            id,
+            done,
+            sub,
+        }
     }
     fn add_sub(&mut self, name: String) {
-        match self.sub {
+        match &self.sub {
             None => {
                 let vec = vec![Sub::new(name)];
                 self.sub = Some(vec);
             }
-            Some(vec)
+            Some(vec) => {
+                let sub = self.add(vec);
+            }
         }
     }
 }
@@ -174,7 +181,9 @@ impl Sub {
             done: false,
         }
     }
-    fn add(vec: Vec<Sub>) {}
+    fn add(vec: Vec<Sub>, name: String) -> Sub {
+        todo!()
+    }
 }
 #[derive(Debug)]
 pub enum TdvErr {
