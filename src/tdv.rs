@@ -90,11 +90,15 @@ impl ToDoValue {
         let id = <ToDoValue as Id>::next_id(vec);
         let done = false;
         let sub = None;
-        ToDoValue {
-            name,
-            id,
-            sub,
-            done,
+        ToDoValue { name, id }
+    }
+    fn add_sub(&mut self, name: String) {
+        match self.sub {
+            None => {
+                let vec = vec![Sub::new(name)];
+                self.sub = Some(vec);
+            }
+            Some(vec)
         }
     }
 }
@@ -163,6 +167,14 @@ impl Sub {
         }
         JsonValue::Object(map)
     }
+    fn new(name: String) -> Sub {
+        Sub {
+            name,
+            id: 0,
+            done: false,
+        }
+    }
+    fn add(vec: Vec<Sub>) {}
 }
 #[derive(Debug)]
 pub enum TdvErr {
