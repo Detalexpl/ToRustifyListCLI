@@ -98,15 +98,18 @@ impl ToDoValue {
         }
     }
     fn add_sub(&mut self, name: String) {
-        match &self.sub {
+        match &mut self.sub {
             None => {
                 let vec = vec![Sub::new(name)];
                 self.sub = Some(vec);
             }
             Some(vec) => {
-                let sub = self.add(vec);
+                let sub = vec.push(Sub::add(vec, name));
             }
         }
+    }
+    fn to_done(&mut self) {
+        self.done = true;
     }
 }
 
@@ -138,7 +141,7 @@ impl Sub {
                 }
             }
         }
-
+        let mut next_free = 0usize;
         for (name, val) in map {
             let Object(o) = val else { return Err(BadJson) };
 
@@ -147,7 +150,6 @@ impl Sub {
                 _ => return Err(BadJson),
             };
 
-            let mut next_free = 0usize;
             let id = match o.get("id") {
                 Some(&JsonValue::Number(idf)) => idf as usize,
                 _ => {
@@ -162,15 +164,17 @@ impl Sub {
         Ok(vec)
     }
     fn to_json(val: Option<Vec<Sub>>) -> JsonValue {
-        let Some(s) = val else { return JsonValue::Null };
+        let Some(subs) = val else {
+            return JsonValue::Null;
+        };
         let mut map = HashMap::new();
-        for sub in s {
-            let jid = JsonValue::Number(sub.id as f64);
-            let jname = JsonValue::String(sub.name);
-            let jdone = JsonValue::Boolean(sub.done);
-            map.insert("name".to_owned(), jname);
-            map.insert("id".to_owned(), jid);
-            map.insert("jdone".to_owned(), jdone);
+        for sub in subs {
+            let fields = HashMap::from([
+                // osobny obiekt dla każdego podzadania
+                ("id".to_owned(), JsonValue::Number(sub.id as f64)),
+                ("done".to_owned(), JsonValue::Boolean(sub.done)),
+            ]);
+            map.insert(sub.name, JsonValue::Object(fields)); // klucz zależy od elementu pętli
         }
         JsonValue::Object(map)
     }
@@ -181,8 +185,16 @@ impl Sub {
             done: false,
         }
     }
-    fn add(vec: Vec<Sub>, name: String) -> Sub {
-        todo!()
+    fn add(vec: &[Sub], name: String) -> Sub {
+        let id = <Sub as Id>::next_id(vec);
+        Sub {
+            name,
+            done: false,
+            id,
+        }
+    }
+    fn to_done(&mut self) {
+        self.done = true;
     }
 }
 #[derive(Debug)]
