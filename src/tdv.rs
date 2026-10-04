@@ -9,6 +9,7 @@ trait Id {
         (0..).find(|id| !used.contains(id)).unwrap()
     }
 }
+#[derive(Clone)]
 struct ToDoValue {
     name: String,
     id: usize,
@@ -67,6 +68,7 @@ impl ToDoValue {
                 sub,
             });
         }
+        vec.sort_unstable_by_key(|t| t.id);
         return Ok(vec);
     }
 
@@ -104,7 +106,7 @@ impl ToDoValue {
                 self.sub = Some(vec);
             }
             Some(vec) => {
-                let sub = vec.push(Sub::add(vec, name));
+                let _sub = vec.push(Sub::add(vec, name));
             }
         }
     }
@@ -118,6 +120,7 @@ impl Id for ToDoValue {
         self.id
     }
 }
+#[derive(Clone)]
 struct Sub {
     name: String,
     done: bool,
@@ -161,6 +164,7 @@ impl Sub {
             };
             vec.push(Sub { name, done, id });
         }
+        vec.sort_unstable_by_key(|s| s.id);
         Ok(vec)
     }
     fn to_json(val: Option<Vec<Sub>>) -> JsonValue {
