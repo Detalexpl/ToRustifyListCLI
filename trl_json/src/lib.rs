@@ -28,4 +28,7 @@ impl JsonValue {
 
         Ok(())
     }
+    pub fn new() -> JsonValue {
+        JsonValue::Object(HashMap::new())
+    }
 }

@@ -2,22 +2,22 @@ use std::collections::HashMap;
 use trl_json::JsonValue::{self, Object};
 
 use crate::tdv::TdvErr::BadJson;
-trait Id {
+pub trait Id {
     fn get_id(&self) -> usize;
     fn next_id<G: Id>(list: &[G]) -> usize {
         let used: std::collections::HashSet<usize> = list.iter().map(Id::get_id).collect();
         (0..).find(|id| !used.contains(id)).unwrap()
     }
 }
-#[derive(Clone)]
-struct ToDoValue {
+#[derive(Clone, Debug)]
+pub struct ToDoValue {
     name: String,
     id: usize,
     sub: Option<Vec<Sub>>,
     done: bool,
 }
 impl ToDoValue {
-    fn from_json(json: JsonValue) -> Result<Vec<ToDoValue>, TdvErr> {
+    pub fn from_json(json: JsonValue) -> Result<Vec<ToDoValue>, TdvErr> {
         let Object(hash) = json else {
             return Err(TdvErr::BadJson);
         };
@@ -73,7 +73,7 @@ impl ToDoValue {
     }
 
     //function to cheange TODoValue to JsonValue
-    fn to_json(vec: Vec<ToDoValue>) -> JsonValue {
+    pub fn to_json(vec: Vec<ToDoValue>) -> JsonValue {
         let mut mmap = HashMap::new();
         for val in vec {
             let jsub = Sub::to_json(val.sub);
@@ -88,7 +88,7 @@ impl ToDoValue {
         }
         JsonValue::Object(mmap)
     }
-    fn add(vec: &Vec<ToDoValue>, name: String) -> ToDoValue {
+    pub fn add(vec: &Vec<ToDoValue>, name: String) -> ToDoValue {
         let id = <ToDoValue as Id>::next_id(vec);
         let done = false;
         let sub = None;
@@ -99,7 +99,8 @@ impl ToDoValue {
             sub,
         }
     }
-    fn add_sub(&mut self, name: String) {
+
+    pub fn add_sub(&mut self, name: String) {
         match &mut self.sub {
             None => {
                 let vec = vec![Sub::new(name)];
@@ -110,8 +111,17 @@ impl ToDoValue {
             }
         }
     }
-    fn to_done(&mut self) {
+    pub fn to_done(&mut self) {
         self.done = true;
+    }
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+    pub fn is_done(&self) -> bool {
+        self.done
+    }
+    pub fn sub(&self) -> Option<Vec<Sub>> {
+        self.sub.clone()
     }
 }
 
@@ -120,8 +130,8 @@ impl Id for ToDoValue {
         self.id
     }
 }
-#[derive(Clone)]
-struct Sub {
+#[derive(Clone, Debug)]
+pub struct Sub {
     name: String,
     done: bool,
     id: usize,
@@ -197,8 +207,18 @@ impl Sub {
             id,
         }
     }
-    fn to_done(&mut self) {
+    pub fn to_done(&mut self) {
         self.done = true;
+    }
+
+    // this function will return reference to sub.name
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    // this function will return bool mening complition of sub
+    pub fn is_done(&self) -> bool {
+        self.done
     }
 }
 #[derive(Debug)]

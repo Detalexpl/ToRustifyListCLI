@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 trl_json = { path = "./trl_json" }
+termcolor = "1.4.1"
