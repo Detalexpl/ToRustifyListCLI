@@ -26,7 +26,9 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     match args.get(1).map(String::as_str) {
         // TODO: get read of this unwrap
-        Some("list") => list(&todoval, stdout.lock()).unwrap(),
+        Some("--list") | Some("-l") => list(&todoval, stdout.lock()).unwrap(),
+        Some("--add") | Some("-a") => add(args, &mut todoval, stdout.lock()).unwrap(),
+        Some("--deleate") | Some("-d") => todo!(),
         Some(a) => {
             eprintln!("wrong argument: \"{}\"", a)
         }
@@ -109,10 +111,37 @@ fn list(todo: &Vec<ToDoValue>, mut lock: StandardStreamLock) -> io::Result<()> {
 fn add(
     args: Vec<String>,
     todoval: &mut Vec<ToDoValue>,
-    mut lock: StandardStreamLock,
+    lock: StandardStreamLock,
 ) -> Result<(), String> {
-    match args.get(2) {
-        Some(n) => Ok(()),
+    let _ = match args.get(2) {
+        Some(n) => {
+            ToDoValue::add(todoval, n.to_owned());
+            Ok(())
+        }
         None => Err("no name provided".to_owned()),
     };
+    list(todoval, lock).map_err(|e| e.to_string())?;
+    Ok(())
+}
+// function to remove think to do
+fn del(
+    args: Vec<String>,
+    todoval: &mut Vec<ToDoValue>,
+    lock: StandardStreamLock,
+) -> Result<(), String> {
+    if args.len() == 4 {
+        let arg_2: &str = &args[2];
+        let key = arg_2
+            .parse::<usize>()
+            .map_err(|_| format!("{arg_2} is not valid number"))?;
+        if let Some(val) = todoval.iter_mut().find(|v| v.get_id() == key) {
+            let arg_3: &str = &args[3];
+            let key_2 = arg_3
+                .parse::<usize>()
+                .map_err(|_| format!("{arg_3} is not valid number"))?;
+            val.del_sub(key_2)?;
+            return Ok(());
+        }
+    }
+    Ok(())
 }

@@ -88,16 +88,17 @@ impl ToDoValue {
         }
         JsonValue::Object(mmap)
     }
-    pub fn add(vec: &Vec<ToDoValue>, name: String) -> ToDoValue {
+    pub fn add(vec: &mut Vec<ToDoValue>, name: String) {
         let id = <ToDoValue as Id>::next_id(vec);
         let done = false;
         let sub = None;
-        ToDoValue {
+        vec.push(ToDoValue {
             name,
             id,
             done,
             sub,
-        }
+        });
+        vec.sort_by_key(|i| i.id);
     }
 
     pub fn add_sub(&mut self, name: String) {
@@ -122,6 +123,20 @@ impl ToDoValue {
     }
     pub fn sub(&self) -> Option<Vec<Sub>> {
         self.sub.clone()
+    }
+    //function to deleate sub value
+    pub fn del_sub(&mut self, key: usize) -> Result<(), String> {
+        match &mut self.sub {
+            Some(v) => {
+                if v.iter().any(|s| s.id == key) {
+                    v.retain(|s| s.id != key);
+                } else {
+                    return Err(format!("no sub point with id: {key}"));
+                }
+            }
+            None => return Err("no sub points to deleate".to_owned()),
+        }
+        Ok(())
     }
 }
 
