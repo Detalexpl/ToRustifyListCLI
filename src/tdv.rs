@@ -108,7 +108,8 @@ impl ToDoValue {
                 self.sub = Some(vec);
             }
             Some(vec) => {
-                let _sub = vec.push(Sub::add(vec, name));
+                vec.push(Sub::add(vec, name));
+                vec.sort_by_key(|i| i.id);
             }
         }
     }
@@ -125,18 +126,51 @@ impl ToDoValue {
         self.sub.clone()
     }
     //function to deleate sub value
-    pub fn del_sub(&mut self, key: usize) -> Result<(), String> {
+    pub fn del_sub(&mut self, id: usize) -> Result<(), String> {
         match &mut self.sub {
             Some(v) => {
-                if v.iter().any(|s| s.id == key) {
-                    v.retain(|s| s.id != key);
+                if v.iter().any(|s| s.id == id) {
+                    v.retain(|s| s.id != id);
                 } else {
-                    return Err(format!("no sub point with id: {key}"));
+                    return Err(format!("no sub point with id: {id}"));
                 }
             }
             None => return Err("no sub points to deleate".to_owned()),
         }
         Ok(())
+    }
+    //function to cheange sub to done
+    pub fn done_sub(&mut self, id: usize) -> Result<(), String> {
+        match &mut self.sub {
+            Some(v) => {
+                if let Some(val) = v.iter_mut().find(|s| s.id == id) {
+                    val.to_done();
+                } else {
+                    return Err(format!("no sub point with id {id}"));
+                }
+            }
+            None => return Err(format!("no sub points to compleate")),
+        }
+        Ok(())
+    }
+    //function to cheange sub to undone
+    pub fn undone_sub(&mut self, id: usize) -> Result<(), String> {
+        match &mut self.sub {
+            Some(v) => {
+                if let Some(val) = v.iter_mut().find(|s| s.id == id) {
+                    val.to_undone();
+                } else {
+                    return Err(format!("no sub point with id {id}"));
+                }
+            }
+            None => return Err(format!("no sub points to compleate")),
+        }
+        Ok(())
+    }
+
+    // function to cheande ToDoVal to undone
+    pub fn to_undone(&mut self) {
+        self.done = false;
     }
 }
 
@@ -224,6 +258,10 @@ impl Sub {
     }
     pub fn to_done(&mut self) {
         self.done = true;
+    }
+    //function to set sub done to false
+    pub fn to_undone(&mut self) {
+        self.done = false;
     }
 
     // this function will return reference to sub.name

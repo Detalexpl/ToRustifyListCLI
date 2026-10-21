@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-trl_json = { path = "./trl_json" }
+trl_json = { version = "1.0.0", path = "./trl_json" }
 termcolor = "1.4.1"
