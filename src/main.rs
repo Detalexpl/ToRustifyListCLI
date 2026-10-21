@@ -80,13 +80,16 @@ fn run() -> Result<(), Box<dyn Error>> {
         other => return Err(format!("unknown argument: \"{other}\"").into()),
     }
     if changed {
-        save(&path, &todos)?; // create_dir_all + plik tymczasowy + rename
+        save(&path, todos);
     }
-    let stdout = StandardStream::stdout(color_choice());
+    let stdout = StandardStream::stdout(ColorChoice::Auto);
     list(&todos, stdout.lock())?;
     Ok(())
 }
-fn save(path: &PathBuf, todos: &Vec<ToDoValue>) {}
+fn save(path: &PathBuf, todos: Vec<ToDoValue>) -> Result<(), Box<dyn Error>> {
+    trl_json::JsonValue::save_to_file(path, &ToDoValue::to_json(todos))?;
+    Ok(())
+}
 
 #[cfg(target_os = "linux")]
 fn get_data_dir() -> Option<PathBuf> {
@@ -164,54 +167,16 @@ fn list(todo: &Vec<ToDoValue>, mut lock: StandardStreamLock) -> Result<(), Strin
     Ok(())
 }
 // function adds new think to do
-fn add(
-    args: Vec<String>,
-    todoval: &mut Vec<ToDoValue>,
-    lock: StandardStreamLock,
-) -> Result<(), String> {
-    if args.len() == 4 {
-        let arg_2: &str = &args[2];
-        match arg_2.parse::<usize>() {
-            Ok(key) => {
-                if let Some(val) = todoval.iter_mut().find(|v| v.get_id() == key) {
-                    val.add_sub(args[3].clone());
-                    match val.sub() {
-                        Some(mut v) => {
-                            v.sort_unstable_by_key(|v| v.get_id());
-                        }
-                        None => {}
-                    }
-                }
-            }
-            Err(_) => {
-                if let Some(val) = todoval.iter_mut().find(|v| v.get_name() == arg_2) {
-                    val.add_sub(args[3].clone());
-                    match val.sub() {
-                        Some(mut v) => {
-                            v.sort_unstable_by_key(|v| v.get_id());
-                        }
-                        None => {}
-                    }
-                } else {
-                    return Err(format!("{arg_2} in wrong name"));
-                }
-            }
-        }
-        if let Some(val) = todoval.iter_mut().find(|v| v.get_name() == arg_2) {
-            val.add_sub(args[3].clone());
-            match val.sub() {
-                Some(mut v) => {
-                    v.sort_unstable_by_key(|v| v.get_id());
-                }
-                None => {}
-            }
+fn add(args: &[String], todos: &mut Vec<ToDoValue>) -> Result<(), String> {
+    match args {
+        [name] => ToDoValue::add(todos, name.clone()),
+        [parent, name] => {
+            let found = match parent.parse::<usize>() {
+                Ok(id) => todos.iter_mut().find(|t| t.get_id() == id),
+                Err(_) => todos.iter_mut().find(|t| t.get_name() == parent.as_str()),
+            };
         }
     }
-    if args.len() == 3 {
-        let arg_2 = args[2].clone();
-        ToDoValue::add(todoval, arg_2);
-    }
-    list(todoval, lock)?;
     Ok(())
 }
 // function to remove think to do
