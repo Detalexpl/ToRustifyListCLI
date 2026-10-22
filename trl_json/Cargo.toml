@@ -2,6 +2,6 @@
 name = "trl_json"
 version = "1.0.0"
 edition = "2024"
-license = false
+license = "Unlicense"
 description = "very bad json serializer and deserializer"
 [dependencies]
