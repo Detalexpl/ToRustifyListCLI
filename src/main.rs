@@ -29,9 +29,7 @@ fn main() {
         Some("--list") | Some("-l") => {
             list(&todoval, stdout.lock()).unwrap_or_else(|e| eprintln!("{e}"))
         }
-        Some("--add") | Some("-a") => {
-            add(args, &mut todoval, stdout.lock()).unwrap_or_else(|e| eprintln!("{e}"))
-        }
+        Some("--add") | Some("-a") => add(&args, &mut todoval).unwrap_or_else(|e| eprintln!("{e}")),
         Some("--deleate") | Some("-d") => {
             del(args, &mut todoval, stdout.lock()).unwrap_or_else(|e| eprintln!("{e}"));
         }
@@ -175,42 +173,40 @@ fn add(args: &[String], todos: &mut Vec<ToDoValue>) -> Result<(), String> {
                 Ok(id) => todos.iter_mut().find(|t| t.get_id() == id),
                 Err(_) => todos.iter_mut().find(|t| t.get_name() == parent.as_str()),
             };
-        }
+            found
+                .ok_or_else(|| format!("bo item: {parent}"))?
+                .add_sub(name.clone());
+        },
+        _ => return Err("usage: --add [<id|name>] <text>".to_owned())),
     }
     Ok(())
 }
-// function to remove think to do
-fn del(
-    args: Vec<String>,
-    todoval: &mut Vec<ToDoValue>,
-    lock: StandardStreamLock,
-) -> Result<(), String> {
-    if args.len() == 4 {
-        let arg_2: &str = &args[2];
-        let key = arg_2
-            .parse::<usize>()
-            .map_err(|_| format!("{arg_2} is not valid number"))?;
-        if let Some(val) = todoval.iter_mut().find(|v| v.get_id() == key) {
-            let arg_3: &str = &args[3];
-            let key_2 = arg_3
-                .parse::<usize>()
-                .map_err(|_| format!("{arg_3} is not valid number"))?;
-            val.del_sub(key_2)?;
+fn del(args: &[String], todos: &mut Vec<ToDoValue>) -> Result<(), String> {
+    let parse = |s: &str| {
+        s.parse::<usize>()
+            .map_err(|_| format!("\"{s}\" is not a valid number"))
+    };
+    match args {
+        // usuń całe zadanie
+        [id] => {
+            let id = parse(id)?;
+            let pos = todos
+                .iter()
+                .position(|t| t.get_id() == id)
+                .ok_or_else(|| format!("no item with id: {id}"))?;
+            todos.remove(pos);
         }
-    } else if args.len() == 3 {
-        let arg_2: &str = &args[2];
-        let key = arg_2
-            .parse::<usize>()
-            .map_err(|_| format!("\"{arg_2}\" is not valid number"))?;
-        if let Some(_) = todoval.iter_mut().find(|v| v.get_id() == key) {
-            todoval.retain(|val| val.get_id() != key);
-        } else {
-            return Err(format!(" no point with id: {arg_2} "));
+        // usuń podzadanie
+        [id, sub] => {
+            let (id, sub) = (parse(id)?, parse(sub)?);
+            todos
+                .iter_mut()
+                .find(|t| t.get_id() == id)
+                .ok_or_else(|| format!("no item with id: {id}"))?
+                .del_sub(sub)?;
         }
-    } else {
-        return Err("wrong number of aruments".to_owned());
+        _ => return Err("wrong number of arguments".to_owned()),
     }
-    list(todoval, lock)?;
     Ok(())
 }
 // function to cheange status to done
