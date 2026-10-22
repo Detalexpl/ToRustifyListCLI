@@ -61,7 +61,7 @@ fn get_data_dir() -> Option<PathBuf> {
     absolute_env("XDG_CACHE_HOME").or_else(|| absolute_env("HOME").map(|home| home.join(".cache")))
 }
 #[cfg(target_os = "windows")]
-fn get_datadir() -> Option<PathBuf> {
+fn get_data_dir() -> Option<PathBuf> {
     absolute_env("LOCALAPPDATA").or_else(|| {
         absolute_env("USERPROFILE").map(|profile| profile.join("AppData").join("Local"))
     })
