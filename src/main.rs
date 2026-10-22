@@ -1,57 +1,25 @@
+mod help;
 mod tdv;
 use crate::tdv::Id;
 use std::error::Error;
 use std::io::Write;
-use std::{env, path::PathBuf, process};
+use std::process::ExitCode;
+use std::{env, path::PathBuf};
 use tdv::ToDoValue;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, StandardStreamLock, WriteColor};
 use trl_json::JsonValue;
-fn main() {
-    let stdout = StandardStream::stdout(ColorChoice::Auto);
-    let Some(mut path) = get_data_dir() else {
-        eprintln!("No cashe dir");
-        process::exit(1)
-    };
-    path.push("trl_cli");
-    let json = match JsonValue::create_from_file(&path) {
-        Ok(json) => json,
-        _ => JsonValue::new(),
-    };
-    let mut todoval = match ToDoValue::from_json(json) {
-        Ok(val) => val,
+fn main() -> ExitCode {
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            dbg!(e);
-            process::exit(1)
-        }
-    };
-    let args: Vec<String> = env::args().collect();
-    match args.get(1).map(String::as_str) {
-        Some("--list") | Some("-l") => {
-            list(&todoval, stdout.lock()).unwrap_or_else(|e| eprintln!("{e}"))
-        }
-        Some("--add") | Some("-a") => add(&args, &mut todoval).unwrap_or_else(|e| eprintln!("{e}")),
-        Some("--deleate") | Some("-d") => {
-            del(args, &mut todoval, stdout.lock()).unwrap_or_else(|e| eprintln!("{e}"));
-        }
-        Some("--complete") | Some("-c") => {
-            done(args, &mut todoval, stdout.lock()).unwrap_or_else(|e| eprintln!("{e}"))
-        }
-        Some("--incomplete") | Some("-i") => {
-            undone(args, &mut todoval, stdout.lock()).unwrap_or_else(|e| eprintln!("{e}"))
-        }
-        Some(a) => {
-            eprintln!("wrong argument: \"{}\"", a)
-        }
-        None => {
-            eprintln!("no aruments provided use -h");
-            process::exit(1);
+            eprintln!("error: {e}");
+            ExitCode::FAILURE
         }
     }
-    let json = ToDoValue::to_json(todoval);
-    JsonValue::save_to_file(&path, &json).unwrap();
 }
-
 fn run() -> Result<(), Box<dyn Error>> {
+    let stdout = StandardStream::stdout(ColorChoice::Auto);
+
     let path = get_data_dir().ok_or("no data dir")?.join("trl_cli");
     let json = if path.exists() {
         JsonValue::create_from_file(&path).map_err(|e| format!("cannot read file: {e:?}"))?
@@ -72,16 +40,15 @@ fn run() -> Result<(), Box<dyn Error>> {
         "--incomplete" | "-i" => set_done(rest, &mut todos, false)?,
         "--list" | "-l" => changed = false,
         "--help" | "-h" => {
-            //print_help();
-            return Ok(());
+            help::print_help(&mut stdout.lock())?;
         }
         other => return Err(format!("unknown argument: \"{other}\"").into()),
     }
-    if changed {
-        save(&path, todos);
-    }
     let stdout = StandardStream::stdout(ColorChoice::Auto);
     list(&todos, stdout.lock())?;
+    if changed {
+        save(&path, todos)?;
+    }
     Ok(())
 }
 fn save(path: &PathBuf, todos: Vec<ToDoValue>) -> Result<(), Box<dyn Error>> {
@@ -176,8 +143,8 @@ fn add(args: &[String], todos: &mut Vec<ToDoValue>) -> Result<(), String> {
             found
                 .ok_or_else(|| format!("bo item: {parent}"))?
                 .add_sub(name.clone());
-        },
-        _ => return Err("usage: --add [<id|name>] <text>".to_owned())),
+        }
+        _ => return Err("usage: --add [<id|name>] <text>".to_owned()),
     }
     Ok(())
 }
@@ -209,70 +176,36 @@ fn del(args: &[String], todos: &mut Vec<ToDoValue>) -> Result<(), String> {
     }
     Ok(())
 }
-// function to cheange status to done
-fn done(
-    args: Vec<String>,
-    todoval: &mut Vec<ToDoValue>,
-    lock: StandardStreamLock,
-) -> Result<(), String> {
-    if args.len() == 4 {
-        let arg_2: &str = &args[2];
-        let key = arg_2
-            .parse::<usize>()
-            .map_err(|_| format!("{arg_2} is not valid nuber"))?;
-        if let Some(val) = todoval.iter_mut().find(|v| v.get_id() == key) {
-            let arg_3: &str = &args[3];
-            let key = arg_3
-                .parse::<usize>()
-                .map_err(|_| format!("{arg_3} is not valid number"))?;
-            val.done_sub(key)?;
+fn set_done(args: &[String], todos: &mut [ToDoValue], done: bool) -> Result<(), String> {
+    match args {
+        [id] => {
+            let item = find_mut(todos, parse_id(id)?)?;
+            if done {
+                item.to_done();
+            } else {
+                item.to_undone();
+            }
         }
-    } else if args.len() == 3 {
-        let arg_2: &str = &args[2];
-        let key = arg_2
-            .parse()
-            .map_err(|_| format!("{arg_2} is not valid number"))?;
-        if let Some(val) = todoval.iter_mut().find(|v| v.get_id() == key) {
-            val.to_done();
-        } else {
-            return Err(format!("no point with id: {arg_2}"));
+        [id, sub] => {
+            let item = find_mut(todos, parse_id(id)?)?;
+            let sub = parse_id(sub)?;
+            if done {
+                item.done_sub(sub)?;
+            } else {
+                item.undone_sub(sub)?;
+            }
         }
-    } else {
-        return Err("wrong number of arguments".to_owned());
+        _ => return Err("wrong number of arguments".to_owned()),
     }
-    list(todoval, lock)?;
     Ok(())
 }
-fn undone(
-    args: Vec<String>,
-    todoval: &mut Vec<ToDoValue>,
-    lock: StandardStreamLock,
-) -> Result<(), String> {
-    if args.len() == 4 {
-        let arg_2: &str = &args[2];
-        let key = arg_2
-            .parse::<usize>()
-            .map_err(|_| format!("{arg_2} is not valid nuber"))?;
-        if let Some(val) = todoval.iter_mut().find(|v| v.get_id() == key) {
-            let arg_3: &str = &args[3];
-            let key = arg_3
-                .parse::<usize>()
-                .map_err(|_| format!("{arg_3} is not valid number"))?;
-            val.undone_sub(key)?;
-        }
-    } else if args.len() == 3 {
-        let arg_2: &str = &args[2];
-        let key = arg_2
-            .parse()
-            .map_err(|_| format!("{arg_2} is not valid number"))?;
-        if let Some(val) = todoval.iter_mut().find(|v| v.get_id() == key) {
-            val.to_undone();
-        } else {
-            return Err(format!("no point with id: {arg_2}"));
-        }
-    } else {
-        return Err("wrong number of arguments".to_owned());
-    }
-    list(todoval, lock)?;
-    Ok(())
+fn find_mut(todos: &mut [ToDoValue], id: usize) -> Result<&mut ToDoValue, String> {
+    todos
+        .iter_mut()
+        .find(|t| t.get_id() == id)
+        .ok_or_else(|| format!("no item with id: {id}"))
+}
+fn parse_id(s: &str) -> Result<usize, String> {
+    s.parse()
+        .map_err(|_| format!("\"{s}\" is not a valid number"))
 }
